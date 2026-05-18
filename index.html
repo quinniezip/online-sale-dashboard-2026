@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM Dashboard – Phúc Tea</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface2: #f0efe9;
+    --border: rgba(0,0,0,0.10);
+    --border-strong: rgba(0,0,0,0.18);
+    --text: #1a1a18;
+    --text-2: #5a5a56;
+    --text-3: #9a9a94;
+    --radius: 10px;
+    --radius-lg: 14px;
+    --c-blue: #185FA5;
+    --c-green: #1D9E75;
+    --c-amber: #BA7517;
+    --c-coral: #D85A30;
+    --c-purple: #7F77DD;
+    --accent: #1D9E75;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111110;
+      --surface: #1c1c1a;
+      --surface2: #242422;
+      --border: rgba(255,255,255,0.10);
+      --border-strong: rgba(255,255,255,0.18);
+      --text: #f0efea;
+      --text-2: #a0a09a;
+      --text-3: #606058;
+    }
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── TOP NAV ── */
+  header {
+    background: var(--surface);
+    border-bottom: 0.5px solid var(--border);
+    padding: 0 2rem;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-dot { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); }
+  .logo-text { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; }
+  .logo-sub { font-size: 12px; color: var(--text-3); }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  #statusBadge {
+    font-size: 11px; padding: 3px 10px; border-radius: 20px;
+    background: var(--surface2); color: var(--text-3);
+    border: 0.5px solid var(--border);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .dot-live { width: 6px; height: 6px; border-radius: 50%; background: #ccc; }
+  .dot-live.active { background: #1D9E75; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ── MAIN LAYOUT ── */
+  main { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+  /* ── CONFIG PANEL ── */
+  .config-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .config-title { font-size: 12px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1rem; }
+  .config-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 11px; color: var(--text-2); font-weight: 500; }
+  .field input[type="text"], .field input[type="date"] {
+    height: 36px;
+    padding: 0 10px;
+    border: 0.5px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field input:focus { border-color: var(--accent); }
+  .field input[type="text"] { width: 320px; }
+  .field input[type="date"] { width: 148px; }
+  .btn {
+    height: 36px; padding: 0 16px;
+    border: none; border-radius: var(--radius);
+    font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-ghost {
+    background: var(--surface2);
+    color: var(--text-2);
+    border: 0.5px solid var(--border-strong);
+  }
+  .btn-ghost:hover { background: var(--border); }
+  .hint { font-size: 11px; color: var(--text-3); margin-top: 6px; }
+  .hint a { color: var(--accent); text-decoration: none; }
+  .hint a:hover { text-decoration: underline; }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-size: 11px; font-weight: 600; color: var(--text-3);
+    text-transform: uppercase; letter-spacing: 0.07em;
+    margin-bottom: 10px;
+  }
+
+  /* ── KPI GRID ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    margin-bottom: 1.5rem;
+  }
+  .kpi-card {
+    background: var(--surface2);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .kpi-label { font-size: 11px; color: var(--text-3); margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
+  .kpi-dot { width: 7px; height: 7px; border-radius: 2px; flex-shrink: 0; }
+  .kpi-value { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; line-height: 1.2; }
+  .kpi-sub { font-size: 11px; color: var(--text-3); margin-top: 3px; }
+
+  /* ── CHART CARD ── */
+  .chart-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+  .chart-title { font-size: 14px; font-weight: 500; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-2); }
+  .legend-swatch { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+
+  /* ── TABLE ── */
+  .table-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { background: var(--surface2); }
+  th {
+    text-align: left; padding: 10px 14px;
+    font-weight: 500; font-size: 11px;
+    color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em;
+    border-bottom: 0.5px solid var(--border);
+  }
+  th.right, td.right { text-align: right; }
+  td {
+    padding: 10px 14px;
+    border-bottom: 0.5px solid var(--border);
+    color: var(--text);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+  .name-cell { display: flex; align-items: center; gap: 7px; font-weight: 500; }
+  .bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .bar-bg { flex: 1; height: 5px; border-radius: 3px; background: var(--surface2); min-width: 60px; }
+  .bar-fill { height: 5px; border-radius: 3px; }
+
+  /* ── LOADING / EMPTY ── */
+  #loadingState {
+    text-align: center; padding: 3rem; color: var(--text-3);
+    font-size: 13px; display: none;
+  }
+  .spinner {
+    width: 28px; height: 28px;
+    border: 2.5px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #emptyState {
+    text-align: center; padding: 3rem; color: var(--text-3);
+    font-size: 13px; display: none;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 640px) {
+    main { padding: 1rem; }
+    .config-row { flex-direction: column; }
+    .field input[type="text"] { width: 100%; }
+    .kpi-value { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    <div>
+      <div class="logo-text">Phúc Tea CRM</div>
+      <div class="logo-sub">Hiệu suất nhân sự RE-MKT</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span id="statusBadge">
+      <span class="dot-live" id="liveDot"></span>
+      <span id="statusText">Chưa kết nối</span>
+    </span>
+    <button class="btn btn-ghost" onclick="refreshData()">↻ Làm mới</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- CONFIG -->
+  <div class="config-card">
+    <div class="config-title">Cấu hình nguồn dữ liệu</div>
+    <div class="config-row">
+      <div class="field">
+        <label>Google Sheets ID</label>
+        <input type="text" id="sheetId" placeholder="1gd4BTJWaUCNNaiHMjSJBo2ForIs2HAOu17XDTdQOWmc"
+          value="1gd4BTJWaUCNNaiHMjSJBo2ForIs2HAOu17XDTdQOWmc">
+      </div>
+      <div class="field">
+        <label>API Key</label>
+        <input type="text" id="apiKey" placeholder="AIza..." style="width:220px">
+      </div>
+      <div class="field">
+        <label>Từ ngày</label>
+        <input type="date" id="dateFrom" value="2026-05-01">
+      </div>
+      <div class="field">
+        <label>Đến ngày</label>
+        <input type="date" id="dateTo" value="2026-05-18">
+      </div>
+      <button class="btn btn-primary" onclick="loadData()">Tải dữ liệu</button>
+    </div>
+    <p class="hint">
+      Cần API Key? <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Tạo tại Google Cloud Console</a>
+      → Bật Google Sheets API → Tạo API Key → Paste vào đây.
+      Sheet phải được <a href="#" onclick="alert('Mở Google Sheet → Share → Anyone with the link → Viewer');return false;">set quyền Public Viewer</a>.
+    </p>
+  </div>
+
+  <!-- LOADING -->
+  <div id="loadingState">
+    <div class="spinner"></div>
+    Đang tải dữ liệu từ Google Sheets...
+  </div>
+
+  <!-- EMPTY -->
+  <div id="emptyState">
+    <div style="font-size: 32px; margin-bottom: 8px;">📊</div>
+    Không có dữ liệu trong khoảng thời gian này.<br>Thử chọn khoảng ngày khác.
+  </div>
+
+  <!-- DASHBOARD (hidden until data loads) -->
+  <div id="dashboard" style="display:none">
+
+    <!-- Revenue section -->
+    <div class="section-label">Doanh thu kênh online (CS) — <span id="revPeriodLabel"></span></div>
+    <div class="kpi-grid" id="revKpiGrid"></div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <span class="chart-title">Doanh thu theo ngày</span>
+        <div class="legend" id="revLegend"></div>
+      </div>
+      <div style="position:relative;height:260px;">
+        <canvas id="revChart" role="img" aria-label="Biểu đồ doanh thu theo ngày chia theo nhân sự"></canvas>
+      </div>
+    </div>
+
+    <!-- Contacts section -->
+    <div class="section-label" style="margin-top:0.5rem">Số khách hàng được liên hệ — <span id="cntPeriodLabel"></span></div>
+    <div class="kpi-grid" id="cntKpiGrid"></div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <span class="chart-title">Lượt liên hệ theo ngày</span>
+        <div class="legend" id="cntLegend"></div>
+      </div>
+      <div style="position:relative;height:260px;">
+        <canvas id="cntChart" role="img" aria-label="Biểu đồ số lượt liên hệ khách hàng theo ngày"></canvas>
+      </div>
+    </div>
+
+    <!-- Efficiency table -->
+    <div class="section-label">Hiệu suất tổng hợp</div>
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:22%">Nhân sự</th>
+            <th class="right">Doanh thu</th>
+            <th class="right">Tỷ trọng</th>
+            <th class="right">Lượt liên hệ</th>
+            <th class="right">DT / lượt</th>
+            <th style="width:20%">Đóng góp DT</th>
+          </tr>
+        </thead>
+        <tbody id="effTableBody"></tbody>
+      </table>
+    </div>
+
+  </div><!-- /dashboard -->
+
+  <p style="font-size:11px;color:var(--text-3);text-align:center;margin-top:2rem" id="lastUpdated"></p>
+
+</main>
+
+<script>
+// ─────────────────────────────────────────────
+//  COLOR MAP
+// ─────────────────────────────────────────────
+const COLORS = {
+  'Gia Bảo':     '#185FA5',
+  'Ngân Trương': '#1D9E75',
+  'Khánh Vy':    '#BA7517',
+  'Thiên Thanh': '#D85A30',
+  'Thảo Văn':    '#7F77DD',
+};
+const ALL_NAMES = Object.keys(COLORS);
+
+// ─────────────────────────────────────────────
+//  CHART INSTANCES (kept for destroy/re-create)
+// ─────────────────────────────────────────────
+let revChartInst = null, cntChartInst = null;
+
+// ─────────────────────────────────────────────
+//  DATE HELPERS
+// ─────────────────────────────────────────────
+function parseSheetDate(s) {
+  // Accepts DD/MM/YYYY
+  if (!s || !s.includes('/')) return null;
+  const parts = s.trim().split('/');
+  if (parts.length !== 3) return null;
+  return new Date(+parts[2], +parts[1] - 1, +parts[0]);
+}
+
+function fmtDate(d) {
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+function fmtVND(v) {
+  if (v >= 1e6) return (v/1e6).toFixed(1) + 'M';
+  if (v >= 1e3) return (v/1e3).toFixed(0) + 'K';
+  return v.toString();
+}
+
+function parseAmt(s) {
+  if (!s) return 0;
+  return parseInt(s.replace(/\./g,'').replace(/,/g,'')) || 0;
+}
+
+function isInRange(dateStr, fromISO, toISO) {
+  const d = parseSheetDate(dateStr);
+  if (!d) return false;
+  const from = new Date(fromISO);
+  const to = new Date(toISO);
+  return d >= from && d <= to;
+}
+
+function buildDateRange(fromISO, toISO) {
+  const dates = [];
+  const cur = new Date(fromISO);
+  const end = new Date(toISO);
+  while (cur <= end) {
+    dates.push(new Date(cur));
+    cur.setDate(cur.getDate() + 1);
+  }
+  return dates;
+}
+
+// ─────────────────────────────────────────────
+//  FETCH SHEET RANGE
+// ─────────────────────────────────────────────
+async function fetchRange(sheetId, apiKey, range) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}?key=${apiKey}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  return data.values || [];
+}
+
+// ─────────────────────────────────────────────
+//  FIND HEADER ROW in raw values
+// ─────────────────────────────────────────────
+function findHeaderRow(rows, keywords) {
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i].map(c => (c||'').toString().trim().toLowerCase());
+    const matches = keywords.filter(k => row.some(c => c.includes(k.toLowerCase())));
+    if (matches.length >= 2) return i;
+  }
+  return -1;
+}
+
+function rowToObj(headers, row) {
+  const obj = {};
+  headers.forEach((h, i) => { obj[h] = (row[i] || '').toString().trim(); });
+  return obj;
+}
+
+// ─────────────────────────────────────────────
+//  MAIN LOAD
+// ─────────────────────────────────────────────
+async function loadData() {
+  const sheetId = document.getElementById('sheetId').value.trim();
+  const apiKey  = document.getElementById('apiKey').value.trim();
+  const fromISO = document.getElementById('dateFrom').value;
+  const toISO   = document.getElementById('dateTo').value;
+
+  if (!sheetId || !apiKey) {
+    alert('Vui lòng nhập Sheet ID và API Key');
+    return;
+  }
+
+  setStatus('loading');
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('loadingState').style.display = 'block';
+
+  try {
+    // Fetch both sheets in parallel
+    const [csRaw, khRaw] = await Promise.all([
+      fetchRange(sheetId, apiKey, 'CS!A1:G500'),
+      fetchRange(sheetId, apiKey, "'Data khách hàng'!A1:O2000"),
+    ]);
+
+    // ── Parse CS revenue summary ──
+    // Find row where col A = "Ngày" and contains person name headers
+    let csHeaderIdx = -1;
+    for (let i = 0; i < csRaw.length; i++) {
+      const r = csRaw[i].map(c => (c||'').trim().toLowerCase());
+      if ((r[0] === 'ngày' || r[0] === 'ngay') && r.length >= 5) {
+        csHeaderIdx = i;
+        break;
+      }
+    }
+
+    let revByDateByPerson = {}; // { 'DD/MM': { 'Gia Bảo': 1000, ... } }
+    let csPersonNames = [];
+
+    if (csHeaderIdx >= 0) {
+      const csHeaders = csRaw[csHeaderIdx].map(c => c.trim());
+      csPersonNames = csHeaders.slice(1, csHeaders.length - 1).filter(n => n && n !== 'Tổng cộng');
+
+      for (let i = csHeaderIdx + 1; i < csRaw.length; i++) {
+        const row = csRaw[i];
+        const dateStr = (row[0] || '').trim();
+        if (!dateStr || !dateStr.includes('/')) continue;
+        if (!isInRange(dateStr, fromISO, toISO)) continue;
+
+        const key = fmtDate(parseSheetDate(dateStr));
+        revByDateByPerson[key] = revByDateByPerson[key] || {};
+        csPersonNames.forEach((name, ni) => {
+          const amt = parseAmt(row[ni + 1] || '');
+          revByDateByPerson[key][name] = (revByDateByPerson[key][name] || 0) + amt;
+        });
+      }
+    }
+
+    // ── Parse Data KH contacts ──
+    const khHeaderIdx = findHeaderRow(khRaw, ['ngày liên hệ', 'pic', 'connection']);
+    let cntByDateByPerson = {};
+    let khPersonSet = new Set();
+
+    if (khHeaderIdx >= 0) {
+      const khHeaders = khRaw[khHeaderIdx].map(c => c.trim());
+      const dateCol = khHeaders.findIndex(h => h.toLowerCase().includes('ngày liên hệ'));
+      const picCol  = khHeaders.findIndex(h => h.toLowerCase() === 'pic');
+
+      for (let i = khHeaderIdx + 1; i < khRaw.length; i++) {
+        const row = khRaw[i];
+        const dateStr = (row[dateCol] || '').trim();
+        const pic     = (row[picCol]  || '').trim();
+        if (!dateStr || !dateStr.includes('/') || !pic) continue;
+        if (!ALL_NAMES.includes(pic)) continue;
+        if (!isInRange(dateStr, fromISO, toISO)) continue;
+
+        const key = fmtDate(parseSheetDate(dateStr));
+        cntByDateByPerson[key] = cntByDateByPerson[key] || {};
+        cntByDateByPerson[key][pic] = (cntByDateByPerson[key][pic] || 0) + 1;
+        khPersonSet.add(pic);
+      }
+    }
+
+    // ── Build date axis ──
+    const dateRange = buildDateRange(fromISO, toISO);
+    const labels = dateRange.map(d => fmtDate(d));
+
+    // Merge person names (only those in the known color map)
+    const allPersons = [...new Set([...csPersonNames, ...Array.from(khPersonSet), ...ALL_NAMES])]
+      .filter(n => ALL_NAMES.includes(n));
+
+    // ── Totals ──
+    const revTotals = {}, cntTotals = {};
+    allPersons.forEach(n => { revTotals[n] = 0; cntTotals[n] = 0; });
+
+    labels.forEach(lbl => {
+      allPersons.forEach(n => {
+        revTotals[n] += (revByDateByPerson[lbl]?.[n] || 0);
+        cntTotals[n] += (cntByDateByPerson[lbl]?.[n] || 0);
+      });
+    });
+
+    const totalRev = Object.values(revTotals).reduce((a,b) => a+b, 0);
+    const totalCnt = Object.values(cntTotals).reduce((a,b) => a+b, 0);
+
+    if (totalRev === 0 && totalCnt === 0) {
+      document.getElementById('loadingState').style.display = 'none';
+      document.getElementById('emptyState').style.display = 'block';
+      setStatus('idle');
+      return;
+    }
+
+    // ── Render ──
+    const periodLabel = `${fromISO.split('-').reverse().join('/')} → ${toISO.split('-').reverse().join('/')}`;
+    document.getElementById('revPeriodLabel').textContent = periodLabel;
+    document.getElementById('cntPeriodLabel').textContent = periodLabel;
+
+    renderKpiGrid('revKpiGrid', allPersons, revTotals, totalRev, n => fmtVND(revTotals[n]) + ' VND', 'VND');
+    renderKpiGrid('cntKpiGrid', allPersons, cntTotals, totalCnt, n => cntTotals[n].toLocaleString('vi-VN'), 'lượt');
+
+    renderStackedBar('revChart', labels, allPersons, revByDateByPerson, 'revChartInst', 'revenue');
+    renderStackedBar('cntChart', labels, allPersons, cntByDateByPerson, 'cntChartInst', 'count');
+
+    renderLegend('revLegend', allPersons);
+    renderLegend('cntLegend', allPersons);
+
+    renderEffTable(allPersons, revTotals, cntTotals, totalRev);
+
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    document.getElementById('lastUpdated').textContent = 'Cập nhật lúc: ' + new Date().toLocaleString('vi-VN');
+    setStatus('live');
+
+  } catch(e) {
+    document.getElementById('loadingState').style.display = 'none';
+    setStatus('error');
+    alert('Lỗi tải dữ liệu:\n' + e.message + '\n\nKiểm tra lại:\n1. API Key hợp lệ\n2. Google Sheets API đã được bật\n3. Sheet đã set quyền Public Viewer\n4. Sheet ID đúng');
+    console.error(e);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  RENDER HELPERS
+// ─────────────────────────────────────────────
+function renderKpiGrid(containerId, persons, totals, grandTotal, valueFn, unit) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+
+  const totalCard = document.createElement('div');
+  totalCard.className = 'kpi-card';
+  totalCard.innerHTML = `
+    <div class="kpi-label">Tổng nhóm</div>
+    <div class="kpi-value">${fmtVND(grandTotal)}</div>
+    <div class="kpi-sub">${unit}</div>
+  `;
+  el.appendChild(totalCard);
+
+  const sorted = [...persons].sort((a,b) => (totals[b]||0) - (totals[a]||0));
+  sorted.forEach(name => {
+    const val = totals[name] || 0;
+    const pct = grandTotal > 0 ? ((val/grandTotal)*100).toFixed(1) : '0.0';
+    const card = document.createElement('div');
+    card.className = 'kpi-card';
+    card.innerHTML = `
+      <div class="kpi-label">
+        <span class="kpi-dot" style="background:${COLORS[name]||'#ccc'}"></span>
+        ${name}
+      </div>
+      <div class="kpi-value" style="font-size:18px">${fmtVND(val)}</div>
+      <div class="kpi-sub">${pct}%</div>
+    `;
+    el.appendChild(card);
+  });
+}
+
+function renderStackedBar(canvasId, labels, persons, dataByDateByPerson, instKey, mode) {
+  if (window[instKey]) { window[instKey].destroy(); window[instKey] = null; }
+
+  const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+  const gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)';
+  const tickColor = isDark ? '#777' : '#aaa';
+
+  const datasets = persons.map(name => ({
+    label: name,
+    data: labels.map(lbl => dataByDateByPerson[lbl]?.[name] || 0),
+    backgroundColor: (COLORS[name] || '#888') + 'cc',
+    borderWidth: 0,
+    borderRadius: 2,
+  }));
+
+  window[instKey] = new Chart(document.getElementById(canvasId), {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const v = ctx.parsed.y;
+              return ` ${ctx.dataset.label}: ${mode === 'revenue' ? fmtVND(v) + ' VND' : v.toLocaleString('vi-VN') + ' lượt'}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          stacked: true,
+          grid: { color: gridColor },
+          ticks: { color: tickColor, font: { size: 10 }, autoSkip: true, maxTicksLimit: 17, maxRotation: 45 }
+        },
+        y: {
+          stacked: true,
+          grid: { color: gridColor },
+          ticks: {
+            color: tickColor, font: { size: 11 },
+            callback: v => mode === 'revenue' ? fmtVND(v) : v.toLocaleString('vi-VN')
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderLegend(containerId, persons) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  persons.forEach(name => {
+    const item = document.createElement('span');
+    item.className = 'legend-item';
+    item.innerHTML = `<span class="legend-swatch" style="background:${COLORS[name]||'#888'}"></span>${name}`;
+    el.appendChild(item);
+  });
+}
+
+function renderEffTable(persons, revTotals, cntTotals, totalRev) {
+  const tbody = document.getElementById('effTableBody');
+  tbody.innerHTML = '';
+  const maxRev = Math.max(...Object.values(revTotals));
+
+  const sorted = [...persons].sort((a,b) => (revTotals[b]||0) - (revTotals[a]||0));
+  sorted.forEach(name => {
+    const rev = revTotals[name] || 0;
+    const cnt = cntTotals[name] || 0;
+    const eff = cnt > 0 ? Math.round(rev / cnt) : 0;
+    const pct = totalRev > 0 ? ((rev/totalRev)*100).toFixed(1) : '0.0';
+    const barW = maxRev > 0 ? ((rev/maxRev)*100).toFixed(1) : '0';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><div class="name-cell"><span style="width:8px;height:8px;border-radius:2px;background:${COLORS[name]};flex-shrink:0;display:inline-block"></span>${name}</div></td>
+      <td class="right" style="font-weight:500">${fmtVND(rev)} VND</td>
+      <td class="right">${pct}%</td>
+      <td class="right">${cnt.toLocaleString('vi-VN')}</td>
+      <td class="right">${fmtVND(eff)}/lượt</td>
+      <td>
+        <div class="bar-wrap">
+          <div class="bar-bg"><div class="bar-fill" style="width:${barW}%;background:${COLORS[name]};"></div></div>
+          <span style="font-size:11px;color:var(--text-3);min-width:36px;text-align:right">${pct}%</span>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ─────────────────────────────────────────────
+//  STATUS
+// ─────────────────────────────────────────────
+function setStatus(state) {
+  const dot  = document.getElementById('liveDot');
+  const text = document.getElementById('statusText');
+  const states = {
+    loading: { cls: '',       t: 'Đang tải...' },
+    live:    { cls: 'active', t: 'Đang kết nối' },
+    idle:    { cls: '',       t: 'Chưa kết nối' },
+    error:   { cls: '',       t: 'Lỗi kết nối' },
+  };
+  const s = states[state] || states.idle;
+  dot.className = 'dot-live ' + s.cls;
+  text.textContent = s.t;
+}
+
+// ─────────────────────────────────────────────
+//  REFRESH & AUTO-REFRESH
+// ─────────────────────────────────────────────
+function refreshData() { loadData(); }
+
+setInterval(() => {
+  if (document.getElementById('apiKey').value.trim()) loadData();
+}, 5 * 60 * 1000);
+
+// ─────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const now = new Date();
+  const from = new Date(now.getFullYear(), now.getMonth(), 1);
+  document.getElementById('dateFrom').value = from.toISOString().split('T')[0];
+  document.getElementById('dateTo').value   = now.toISOString().split('T')[0];
+});
+</script>
+</body>
+</html>
