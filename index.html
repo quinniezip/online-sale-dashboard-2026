@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phúc Tea — CRM Dashboard 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg:       #0d0f17;
+  --surface:  #131620;
+  --surface2: #1a1e2e;
+  --surface3: #232840;
+  --border:   rgba(255,255,255,0.07);
+  --border2:  rgba(255,255,255,0.13);
+  --text:     #e4e8f4;
+  --text-2:   #7c849e;
+  --text-3:   #454c66;
+  --accent:   #4f79f6;
+  --green:    #22c55e;
+  --red:      #ef4444;
+  --amber:    #f59e0b;
+  --purple:   #a78bfa;
+  --radius:   10px;
+  --radius-lg:14px;
+  --sidebar-w:52px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.55;min-height:100vh;display:flex}
+
+/* ─── SIDEBAR ICONS ─── */
+.sidebar{width:var(--sidebar-w);background:var(--surface);border-right:.5px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:12px 0;position:fixed;top:0;left:0;bottom:0;z-index:300;gap:4px}
+.sidebar .logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),#7c3aed);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:8px;flex-shrink:0}
+.s-btn{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:var(--text-3);transition:background .12s,color .12s;flex-shrink:0;border:none;background:transparent}
+.s-btn:hover{background:var(--surface2);color:var(--text-2)}
+.s-btn.active{background:rgba(79,121,246,.18);color:var(--accent)}
+.s-divider{width:28px;height:.5px;background:var(--border);margin:4px 0;flex-shrink:0}
+
+/* ─── MAIN ─── */
+.main-wrap{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh}
+
+/* ─── TOP BAR ─── */
+.topbar{background:var(--surface);border-bottom:.5px solid var(--border);padding:0 1.5rem;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200}
+.tb-left{display:flex;flex-direction:column}
+.tb-title{font-size:15px;font-weight:700;letter-spacing:-.3px}
+.tb-sub{font-size:11px;color:var(--text-3)}
+.tb-right{display:flex;align-items:center;gap:8px}
+.meta-badge{font-size:11px;padding:3px 9px;border-radius:6px;background:var(--surface2);color:var(--text-2);border:.5px solid var(--border);display:flex;align-items:center;gap:5px}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--text-3);flex-shrink:0}
+.sync-dot.live{background:var(--green);animation:pulse 2s infinite}
+.sync-dot.loading{background:var(--amber);animation:pulse .7s infinite}
+.sync-dot.error{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.btn{height:32px;padding:0 12px;border:none;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;transition:opacity .15s,transform .1s}
+.btn:active{transform:scale(.97)}
+.btn-accent{background:var(--accent);color:#fff}.btn-accent:hover{opacity:.85}
+.btn-ghost{background:var(--surface2);color:var(--text-2);border:.5px solid var(--border2)}.btn-ghost:hover{color:var(--text)}
+.btn-danger{background:rgba(239,68,68,.15);color:var(--red);border:.5px solid rgba(239,68,68,.25)}.btn-danger:hover{background:rgba(239,68,68,.25)}
+
+/* ─── FILTER BAR ─── */
+.filter-bar{background:var(--surface);border-bottom:.5px solid var(--border);padding:10px 1.5rem;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:3px}
+.field label{font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em}
+.field input,.field select{height:32px;padding:0 10px;border:.5px solid var(--border2);border-radius:7px;background:var(--surface2);color:var(--text);font-size:12px;outline:none;transition:border-color .12s}
+.field input:focus,.field select:focus{border-color:var(--accent)}
+.field input[type="date"]{width:136px}
+.field select{min-width:120px;padding-right:6px}
+.quick-pill{display:flex;gap:4px}
+.pill{height:28px;padding:0 10px;border:.5px solid var(--border2);border-radius:20px;background:transparent;color:var(--text-2);font-size:11px;cursor:pointer;transition:all .12s}
+.pill:hover,.pill.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* ─── CONTENT ─── */
+.content{padding:1.25rem 1.5rem;flex:1}
+
+/* ─── SECTION HEADER ─── */
+.sec-hd{display:flex;align-items:center;gap:10px;margin-bottom:12px;margin-top:4px}
+.sec-bar{width:3px;height:16px;border-radius:2px;flex-shrink:0}
+.sec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-2)}
+
+/* ─── INTELLIGENCE PANEL ─── */
+.intel-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:1.25rem}
+.intel-card{background:var(--surface);border:.5px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px}
+.intel-hd{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.alert-item{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:.5px solid var(--border)}
+.alert-item:last-child{border-bottom:none;padding-bottom:0}
+.alert-num{width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px}
+.alert-num.n1{background:rgba(167,139,250,.2);color:var(--purple)}
+.alert-num.n2{background:rgba(245,158,11,.2);color:var(--amber)}
+.alert-num.n3{background:rgba(34,197,94,.2);color:var(--green)}
+.alert-icon{font-size:13px;flex-shrink:0;margin-top:1px}
+.alert-text{font-size:12px;color:var(--text-2);line-height:1.45}
+.alert-text strong{color:var(--text);display:block;font-size:12px;margin-bottom:1px}
+.risk-item{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:.5px solid var(--border)}
+.risk-item:last-child{border-bottom:none;padding-bottom:0}
+.risk-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;flex-shrink:0;margin-top:2px;letter-spacing:.04em}
+.risk-badge.high{background:rgba(239,68,68,.2);color:var(--red)}
+.risk-badge.medium{background:rgba(245,158,11,.2);color:var(--amber)}
+.risk-text{font-size:12px;color:var(--text-2);line-height:1.45}
+.action-input-row{display:flex;gap:6px;margin-top:6px}
+.action-input{flex:1;height:32px;padding:0 10px;border:.5px solid var(--border2);border-radius:7px;background:var(--surface2);color:var(--text);font-size:12px;outline:none}
+.action-input:focus{border-color:var(--accent)}
+.action-add-btn{width:32px;height:32px;border-radius:7px;background:var(--accent);color:#fff;border:none;font-size:16px;cursor:pointer;flex-shrink:0}
+.action-list{margin-top:8px;display:flex;flex-direction:column;gap:4px}
+.action-entry{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2);padding:5px 8px;background:var(--surface2);border-radius:6px}
+.action-entry .done-btn{width:16px;height:16px;border-radius:4px;border:.5px solid var(--border2);background:transparent;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text-3)}
+.action-entry .done-btn:hover{background:var(--green);color:#fff;border-color:var(--green)}
+.action-entry .del-btn{margin-left:auto;color:var(--text-3);cursor:pointer;font-size:12px;flex-shrink:0}.action-entry .del-btn:hover{color:var(--red)}
+.empty-intel{font-size:12px;color:var(--text-3);text-align:center;padding:20px 0;font-style:italic}
+
+/* ─── KPI CARDS ─── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:1.25rem}
+.kpi-card{background:var(--surface);border:.5px solid var(--border);border-radius:var(--radius);padding:16px;position:relative;overflow:hidden}
+.kpi-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--kc,var(--accent))}
+.kpi-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:8px}
+.kpi-value{font-size:28px;font-weight:800;letter-spacing:-.8px;line-height:1.1;color:var(--text)}
+.kpi-unit{font-size:13px;font-weight:400;color:var(--text-3);margin-left:2px}
+.kpi-comps{margin-top:8px;display:flex;flex-direction:column;gap:3px}
+.kpi-comp{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-3)}
+.chg-badge{display:inline-flex;align-items:center;gap:2px;font-size:10px;font-weight:700;padding:1px 5px;border-radius:4px;flex-shrink:0}
+.chg-badge.up{background:rgba(34,197,94,.15);color:var(--green)}
+.chg-badge.down{background:rgba(239,68,68,.15);color:var(--red)}
+.chg-badge.flat{background:rgba(124,132,158,.12);color:var(--text-3)}
+.kpi-desc{font-size:11px;color:var(--text-3);margin-top:8px;padding-top:8px;border-top:.5px solid var(--border)}
+
+/* ─── CHART GRID ─── */
+.chart-grid{display:grid;gap:10px;margin-bottom:1.25rem}
+.chart-grid.cols2{grid-template-columns:1fr 1fr}
+.chart-grid.cols3{grid-template-columns:2fr 1fr}
+.chart-card{background:var(--surface);border:.5px solid var(--border);border-radius:var(--radius-lg);padding:1.2rem 1.4rem}
+.chart-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:.9rem}
+.chart-title{font-size:12px;font-weight:600;color:var(--text)}
+.chart-sub{font-size:10px;color:var(--text-3)}
+.legend{display:flex;flex-wrap:wrap;gap:8px}
+.legend-item{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-2)}
+.legend-sw{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+
+/* ─── TABLE ─── */
+.table-wrap{background:var(--surface);border:.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:1.25rem}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead tr{background:var(--surface2)}
+th{text-align:left;padding:10px 14px;font-weight:700;font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;border-bottom:.5px solid var(--border)}
+th.r,td.r{text-align:right}
+td{padding:11px 14px;border-bottom:.5px solid var(--border);color:var(--text)}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(255,255,255,0.02)}
+.name-cell{display:flex;align-items:center;gap:8px;font-weight:600}
+.avatar{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0}
+.rank{width:20px;height:20px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;background:var(--surface2);color:var(--text-3)}
+.rank.r1{background:rgba(245,158,11,.15);color:var(--amber)}
+.rank.r2{background:rgba(148,163,184,.1);color:#94a3b8}
+.rank.r3{background:rgba(205,133,90,.1);color:#cd855a}
+.bar-wrap{display:flex;align-items:center;gap:6px}
+.bar-bg{flex:1;height:4px;border-radius:3px;background:var(--surface2);min-width:50px}
+.bar-fill{height:4px;border-radius:3px}
+
+/* ─── STATES ─── */
+#setupState,#loadingState,#emptyState{text-align:center;padding:4rem 2rem;color:var(--text-3);font-size:13px}
+#setupState{display:block}#loadingState,#emptyState{display:none}
+.spinner{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.setup-icon{font-size:42px;margin-bottom:14px}
+.setup-title{font-size:17px;font-weight:700;color:var(--text);margin-bottom:6px}
+.setup-desc{font-size:13px;color:var(--text-2);line-height:1.7;max-width:440px;margin:0 auto 20px}
+
+/* ─── SETTINGS PAGE ─── */
+#settingsPage{display:none;padding:1.5rem;flex:1}
+.settings-form{max-width:560px;background:var(--surface);border:.5px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;display:flex;flex-direction:column;gap:14px}
+.settings-form .field input{width:100%}
+.hint-box{margin-top:8px;padding:12px 14px;background:var(--surface2);border-radius:var(--radius);font-size:12px;color:var(--text-2);line-height:1.8}
+.hint-box a{color:var(--accent);text-decoration:none}.hint-box a:hover{text-decoration:underline}
+
+/* ─── COUNTDOWN ─── */
+.countdown-wrap{font-size:10px;color:var(--text-3);display:flex;align-items:center;gap:6px}
+.cd-bar{width:50px;height:3px;border-radius:2px;background:var(--surface2);overflow:hidden}
+.cd-fill{height:100%;border-radius:2px;background:var(--accent);transition:width 1s linear}
+
+/* ─── RESPONSIVE ─── */
+@media(max-width:900px){
+  .intel-grid{grid-template-columns:1fr}
+  .chart-grid.cols2,.chart-grid.cols3{grid-template-columns:1fr}
+  .kpi-grid{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+}
+@media(max-width:640px){
+  .filter-bar{flex-direction:column;align-items:stretch}
+  .field input[type="date"]{width:100%}
+  .sidebar{display:none}.main-wrap{margin-left:0}
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo-icon">🧋</div>
+  <button class="s-btn active" title="Dashboard" onclick="navTo('dash','this')">📊</button>
+  <button class="s-btn" title="Doanh thu" onclick="navTo('dash','this')">💰</button>
+  <button class="s-btn" title="Nhân sự" onclick="navTo('dash','this')">👥</button>
+  <div class="s-divider"></div>
+  <button class="s-btn" title="Cài đặt" onclick="navTo('settings','this')">⚙️</button>
+</aside>
+
+<!-- MAIN -->
+<div class="main-wrap">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="tb-left">
+      <div class="tb-title">Phúc Tea — CRM Dashboard 2026</div>
+      <div class="tb-sub">Hệ thống phân tích hiệu suất nhân sự RE-MKT</div>
+    </div>
+    <div class="tb-right">
+      <div class="meta-badge" id="metaBadge" style="display:none">
+        <span class="sync-dot" id="syncDot"></span>
+        <span id="syncText">—</span>
+      </div>
+      <div class="countdown-wrap" id="cdWrap" style="display:none">
+        Làm mới sau <span id="cdSec">—</span>s
+        <div class="cd-bar"><div class="cd-fill" id="cdFill" style="width:100%"></div></div>
+      </div>
+      <button class="btn btn-ghost" onclick="triggerRefresh()">↻ Làm mới</button>
+      <button class="btn btn-accent" onclick="navTo('settings')">⚙ Cài đặt</button>
+    </div>
+  </header>
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar" id="filterBar">
+    <div class="field">
+      <label>Từ ngày</label>
+      <input type="date" id="dateFrom">
+    </div>
+    <div class="field">
+      <label>Đến ngày</label>
+      <input type="date" id="dateTo">
+    </div>
+    <div class="field">
+      <label>Khoảng nhanh</label>
+      <div class="quick-pill">
+        <button class="pill" onclick="setRange(7,this)">7N</button>
+        <button class="pill active" onclick="setRange('month',this)">Tháng này</button>
+        <button class="pill" onclick="setRange(30,this)">30N</button>
+        <button class="pill" onclick="setRange(90,this)">90N</button>
+      </div>
+    </div>
+    <button class="btn btn-accent" style="height:32px;align-self:flex-end" onclick="loadData()">Áp dụng</button>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content" id="mainContent">
+
+    <div id="setupState">
+      <div class="setup-icon">🔗</div>
+      <div class="setup-title">Kết nối Google Sheets để bắt đầu</div>
+      <div class="setup-desc">Nhập Sheet ID và API Key một lần, dashboard sẽ tự động đồng bộ dữ liệu mỗi 2 phút.</div>
+      <button class="btn btn-accent" style="height:38px;padding:0 20px;font-size:13px" onclick="navTo('settings')">Đi đến Cài đặt →</button>
+    </div>
+    <div id="loadingState"><div class="spinner"></div>Đang đồng bộ dữ liệu từ Google Sheets...</div>
+    <div id="emptyState">
+      <div style="font-size:38px;margin-bottom:12px">📭</div>
+      Không có dữ liệu trong khoảng thời gian đã chọn.<br>Thử chọn khoảng ngày khác.
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="dashboardContent" style="display:none">
+
+      <!-- ── INTELLIGENCE PANEL ── -->
+      <div class="sec-hd"><div class="sec-bar" style="background:var(--purple)"></div><div class="sec-title">🧠 Intelligence Panel</div></div>
+      <div class="intel-grid">
+
+        <div class="intel-card">
+          <div class="intel-hd">🚀 Top điểm cần chú ý</div>
+          <div id="intelAlerts"></div>
+        </div>
+
+        <div class="intel-card">
+          <div class="intel-hd">✅ Action Items</div>
+          <div class="action-input-row">
+            <input class="action-input" id="actionInput" placeholder="Thêm action item..." onkeydown="if(event.key==='Enter')addAction()">
+            <button class="action-add-btn" onclick="addAction()">+</button>
+          </div>
+          <div class="action-list" id="actionList"></div>
+        </div>
+
+        <div class="intel-card">
+          <div class="intel-hd">⚠️ Risk Alerts</div>
+          <div id="riskAlerts"></div>
+        </div>
+
+      </div>
+
+      <!-- ── KPI CARDS ── -->
+      <div class="sec-hd"><div class="sec-bar" style="background:var(--accent)"></div><div class="sec-title">📈 KPI Cards</div></div>
+      <div class="kpi-grid" id="kpiGrid"></div>
+
+      <!-- ── CHARTS ROW 1: stacked bar + donut ── -->
+      <div class="sec-hd"><div class="sec-bar" style="background:var(--green)"></div><div class="sec-title">💰 Phân tích doanh thu</div></div>
+      <div class="chart-grid cols3">
+        <div class="chart-card">
+          <div class="chart-hd">
+            <div><div class="chart-title">Doanh thu theo ngày</div><div class="chart-sub">Stacked bar — từng nhân sự</div></div>
+            <div class="legend" id="revBarLegend"></div>
+          </div>
+          <div style="position:relative;height:230px"><canvas id="revBarChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-hd"><div class="chart-title">Tỷ trọng DT</div></div>
+          <div style="position:relative;height:230px"><canvas id="donutChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- ── CHARTS ROW 2: line + contacts ── -->
+      <div class="chart-grid cols2">
+        <div class="chart-card">
+          <div class="chart-hd">
+            <div><div class="chart-title">Xu hướng doanh thu</div><div class="chart-sub">Line chart — trend theo ngày</div></div>
+            <div class="legend" id="revLineLegend"></div>
+          </div>
+          <div style="position:relative;height:210px"><canvas id="revLineChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-hd">
+            <div><div class="chart-title">Lượt liên hệ khách hàng</div><div class="chart-sub">Stacked bar — từng nhân sự</div></div>
+            <div class="legend" id="cntLegend"></div>
+          </div>
+          <div style="position:relative;height:210px"><canvas id="cntChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- ── STAFF TABLE ── -->
+      <div class="sec-hd"><div class="sec-bar" style="background:var(--amber)"></div><div class="sec-title">🏆 Hiệu suất nhân sự</div></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nhân sự</th>
+              <th class="r">Doanh thu</th>
+              <th class="r">vs kỳ trước</th>
+              <th class="r">Tỷ trọng</th>
+              <th class="r">Lượt liên hệ</th>
+              <th class="r">DT / lượt</th>
+              <th style="width:18%">Đóng góp</th>
+            </tr>
+          </thead>
+          <tbody id="staffTable"></tbody>
+        </table>
+      </div>
+
+    </div><!-- /dashboardContent -->
+  </div><!-- /mainContent -->
+
+  <!-- SETTINGS PAGE -->
+  <div id="settingsPage">
+    <div style="max-width:580px">
+      <div style="font-size:16px;font-weight:700;margin-bottom:4px">Cài đặt nguồn dữ liệu</div>
+      <div style="font-size:12px;color:var(--text-3);margin-bottom:1.25rem">Lưu trong trình duyệt — không cần nhập lại lần sau.</div>
+      <div class="settings-form">
+        <div class="field"><label>Google Sheets ID</label><input type="text" id="cfgSheetId" placeholder="1gd4BTJWaUCNNaiHMjSJBo2ForIs2HAOu17XDTdQOWmc"></div>
+        <div class="field"><label>API Key</label><input type="password" id="cfgApiKey" placeholder="AIza..."></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-accent" style="height:36px;padding:0 16px" onclick="saveSettings()">💾 Lưu & Kết nối</button>
+          <button class="btn btn-danger" onclick="clearSettings()">Xóa cài đặt</button>
+        </div>
+      </div>
+      <div class="hint-box">
+        <strong style="color:var(--text)">Hướng dẫn lấy API Key:</strong><br>
+        1. Vào <a href="https://console.cloud.google.com/apis/library/sheets.googleapis.com" target="_blank">Google Cloud Console</a> → Bật <strong>Google Sheets API</strong><br>
+        2. Vào <strong>APIs &amp; Services → Credentials</strong> → <strong>+ Create Credentials → API Key</strong><br>
+        3. Copy Sheet ID từ URL Google Sheet của bạn (đoạn dài giữa <code>/d/</code> và <code>/edit</code>)<br>
+        4. Mở Google Sheet → <strong>Share</strong> → <strong>Anyone with the link → Viewer</strong>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main-wrap -->
+
+<script>
+// ══════════════════════════════════════════
+//  CONSTANTS
+// ══════════════════════════════════════════
+const COLORS = {
+  'Gia Bảo':     '#4f79f6',
+  'Ngân Trương': '#22c55e',
+  'Khánh Vy':    '#f59e0b',
+  'Thiên Thanh': '#ef4444',
+  'Thảo Văn':    '#a78bfa',
+};
+const ALL_NAMES = Object.keys(COLORS);
+const REFRESH_SEC = 120;
+const charts = {};
+let cdInterval = null, cdVal = REFRESH_SEC;
+
+// ══════════════════════════════════════════
+//  STORAGE
+// ══════════════════════════════════════════
+const cfg = {
+  get sheetId(){ return localStorage.getItem('pt_sheetId')||'' },
+  get apiKey(){  return localStorage.getItem('pt_apiKey')||'' },
+  save(s,a){ localStorage.setItem('pt_sheetId',s); localStorage.setItem('pt_apiKey',a) },
+  clear(){ localStorage.removeItem('pt_sheetId'); localStorage.removeItem('pt_apiKey') }
+};
+
+// ══════════════════════════════════════════
+//  ACTIONS (localStorage)
+// ══════════════════════════════════════════
+function getActions(){ try{ return JSON.parse(localStorage.getItem('pt_actions')||'[]') }catch{ return [] } }
+function saveActions(a){ localStorage.setItem('pt_actions', JSON.stringify(a)) }
+function renderActions(){
+  const list = document.getElementById('actionList');
+  const actions = getActions();
+  if(!actions.length){ list.innerHTML='<div class="empty-intel">Chưa có action item nào</div>'; return }
+  list.innerHTML = actions.map((a,i)=>`
+    <div class="action-entry">
+      <button class="done-btn" onclick="toggleAction(${i})" title="Hoàn thành">${a.done?'✓':''}</button>
+      <span style="${a.done?'text-decoration:line-through;opacity:.45':''}">  ${a.text}</span>
+      <span class="del-btn" onclick="deleteAction(${i})">✕</span>
+    </div>`).join('');
+}
+function addAction(){
+  const inp = document.getElementById('actionInput');
+  const txt = inp.value.trim();
+  if(!txt) return;
+  const arr = getActions();
+  arr.push({text:txt, done:false});
+  saveActions(arr); renderActions();
+  inp.value='';
+}
+function toggleAction(i){ const a=getActions(); a[i].done=!a[i].done; saveActions(a); renderActions() }
+function deleteAction(i){ const a=getActions(); a.splice(i,1); saveActions(a); renderActions() }
+
+// ══════════════════════════════════════════
+//  NAV
+// ══════════════════════════════════════════
+function navTo(page, btn){
+  document.querySelectorAll('.s-btn').forEach(b=>b.classList.remove('active'));
+  if(btn && btn!=='this' && btn.classList) btn.classList.add('active');
+
+  document.getElementById('settingsPage').style.display  = page==='settings' ? 'block' : 'none';
+  document.getElementById('mainContent').style.display   = page==='settings' ? 'none'  : 'block';
+  document.getElementById('filterBar').style.display     = page==='settings' ? 'none'  : 'flex';
+
+  if(page==='settings'){
+    document.getElementById('cfgSheetId').value = cfg.sheetId;
+    document.getElementById('cfgApiKey').value  = cfg.apiKey;
+  }
+}
+
+// ══════════════════════════════════════════
+//  SETTINGS
+// ══════════════════════════════════════════
+function saveSettings(){
+  const s = document.getElementById('cfgSheetId').value.trim();
+  const a = document.getElementById('cfgApiKey').value.trim();
+  if(!s||!a){ alert('Vui lòng nhập Sheet ID và API Key'); return }
+  cfg.save(s,a);
+  navTo('dash');
+  loadData();
+}
+function clearSettings(){
+  if(!confirm('Xóa toàn bộ cài đặt?')) return;
+  cfg.clear(); stopCd();
+  setState('setup'); navTo('dash');
+}
+
+// ══════════════════════════════════════════
+//  DATE HELPERS
+// ══════════════════════════════════════════
+function parseSheetDate(s){
+  if(!s||!s.includes('/')) return null;
+  const p=s.trim().split('/');
+  if(p.length!==3) return null;
+  return new Date(+p[2],+p[1]-1,+p[0]);
+}
+function fmtDate(d){ return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}` }
+function fmtVND(v){
+  if(v>=1e9) return (v/1e9).toFixed(2)+'B';
+  if(v>=1e6) return (v/1e6).toFixed(1)+'M';
+  if(v>=1e3) return (v/1e3).toFixed(0)+'K';
+  return v.toString();
+}
+function parseAmt(s){ if(!s) return 0; return parseInt(s.replace(/\./g,'').replace(/,/g,''))||0 }
+function isInRange(ds,from,to){
+  const d=parseSheetDate(ds); if(!d) return false;
+  return d>=new Date(from)&&d<=new Date(to);
+}
+function buildRange(from,to){
+  const a=[],c=new Date(from),e=new Date(to);
+  while(c<=e){a.push(new Date(c));c.setDate(c.getDate()+1)}
+  return a;
+}
+function todayISO(){ return new Date().toISOString().split('T')[0] }
+function daysAgoISO(n){ const d=new Date();d.setDate(d.getDate()-n+1);return d.toISOString().split('T')[0] }
+function monthStartISO(){ const d=new Date();return new Date(d.getFullYear(),d.getMonth(),1).toISOString().split('T')[0] }
+function prevPeriodISO(from,to){
+  const f=new Date(from),t=new Date(to);
+  const days=Math.round((t-f)/(86400000))+1;
+  const pf=new Date(f);pf.setDate(pf.getDate()-days);
+  const pt=new Date(f);pt.setDate(pt.getDate()-1);
+  return [pf.toISOString().split('T')[0], pt.toISOString().split('T')[0]];
+}
+
+function setRange(mode, el){
+  document.querySelectorAll('.pill').forEach(b=>b.classList.remove('active'));
+  if(el) el.classList.add('active');
+  if(mode==='month'){
+    document.getElementById('dateFrom').value = monthStartISO();
+  } else {
+    document.getElementById('dateFrom').value = daysAgoISO(mode);
+  }
+  document.getElementById('dateTo').value = todayISO();
+  loadData();
+}
+
+// ══════════════════════════════════════════
+//  FETCH
+// ══════════════════════════════════════════
+async function fetchRange(range){
+  const url=`https://sheets.googleapis.com/v4/spreadsheets/${cfg.sheetId}/values/${encodeURIComponent(range)}?key=${cfg.apiKey}`;
+  const res=await fetch(url);
+  if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e?.error?.message||`HTTP ${res.status}`) }
+  return (await res.json()).values||[];
+}
+
+function findHeaderRow(rows,keywords){
+  for(let i=0;i<rows.length;i++){
+    const r=rows[i].map(c=>(c||'').toString().trim().toLowerCase());
+    if(keywords.filter(k=>r.some(c=>c.includes(k.toLowerCase()))).length>=2) return i;
+  }
+  return -1;
+}
+
+// ══════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════
+function setState(s){
+  ['setup','loading','empty'].forEach(id=>document.getElementById(id+'State').style.display='none');
+  document.getElementById('dashboardContent').style.display='none';
+  if(s==='data'){ document.getElementById('dashboardContent').style.display='block' }
+  else { document.getElementById(s+'State').style.display='block' }
+
+  const dot=document.getElementById('syncDot'), txt=document.getElementById('syncText');
+  const meta=document.getElementById('metaBadge');
+  const map={setup:{c:'',t:'Chưa cấu hình'},loading:{c:'loading',t:'Đang đồng bộ...'},live:{c:'live',t:'Đã kết nối'},error:{c:'error',t:'Lỗi kết nối'},empty:{c:'',t:'Không có dữ liệu'}};
+  const m=map[s]||map.setup;
+  if(dot){ dot.className='sync-dot '+m.c; txt.textContent=m.t }
+  meta.style.display = s==='setup' ? 'none' : 'flex';
+}
+
+// ══════════════════════════════════════════
+//  COUNTDOWN
+// ══════════════════════════════════════════
+function startCd(){
+  stopCd();
+  cdVal=REFRESH_SEC;
+  document.getElementById('cdWrap').style.display='flex';
+  cdInterval=setInterval(()=>{
+    cdVal--;
+    document.getElementById('cdSec').textContent=cdVal;
+    document.getElementById('cdFill').style.width=((cdVal/REFRESH_SEC)*100)+'%';
+    if(cdVal<=0){ cdVal=REFRESH_SEC; loadData(true) }
+  },1000);
+}
+function stopCd(){ clearInterval(cdInterval); document.getElementById('cdWrap').style.display='none' }
+function triggerRefresh(){ cdVal=REFRESH_SEC; loadData() }
+
+// ══════════════════════════════════════════
+//  PARSE DATA
+// ══════════════════════════════════════════
+async function parseSheetData(fromISO, toISO){
+  const [csRaw,khRaw]=await Promise.all([
+    fetchRange('CS!A1:G500'),
+    fetchRange("'Data khách hàng'!A1:O2000"),
+  ]);
+
+  // CS revenue
+  let csHdrIdx=-1;
+  for(let i=0;i<csRaw.length;i++){
+    const r=csRaw[i].map(c=>(c||'').trim().toLowerCase());
+    if((r[0]==='ngày'||r[0]==='ngay')&&r.length>=5){csHdrIdx=i;break}
+  }
+  let revByDate={}, csNames=[];
+  if(csHdrIdx>=0){
+    const hdrs=csRaw[csHdrIdx].map(c=>c.trim());
+    csNames=hdrs.slice(1,hdrs.length-1).filter(n=>n&&n!=='Tổng cộng');
+    for(let i=csHdrIdx+1;i<csRaw.length;i++){
+      const row=csRaw[i];
+      const ds=(row[0]||'').trim();
+      if(!ds.includes('/')||!isInRange(ds,fromISO,toISO)) continue;
+      const key=fmtDate(parseSheetDate(ds));
+      revByDate[key]=revByDate[key]||{};
+      csNames.forEach((n,ni)=>{ revByDate[key][n]=(revByDate[key][n]||0)+parseAmt(row[ni+1]||'') });
+    }
+  }
+
+  // KH contacts
+  const khHdr=findHeaderRow(khRaw,['ngày liên hệ','pic']);
+  let cntByDate={}, khSet=new Set();
+  if(khHdr>=0){
+    const hdrs=khRaw[khHdr].map(c=>c.trim());
+    const dCol=hdrs.findIndex(h=>h.toLowerCase().includes('ngày liên hệ'));
+    const pCol=hdrs.findIndex(h=>h.toLowerCase()==='pic');
+    for(let i=khHdr+1;i<khRaw.length;i++){
+      const row=khRaw[i];
+      const ds=(row[dCol]||'').trim(), pic=(row[pCol]||'').trim();
+      if(!ds.includes('/')||!pic||!ALL_NAMES.includes(pic)) continue;
+      if(!isInRange(ds,fromISO,toISO)) continue;
+      const key=fmtDate(parseSheetDate(ds));
+      cntByDate[key]=cntByDate[key]||{};
+      cntByDate[key][pic]=(cntByDate[key][pic]||0)+1;
+      khSet.add(pic);
+    }
+  }
+
+  const labels=buildRange(fromISO,toISO).map(d=>fmtDate(d));
+  const persons=[...new Set([...csNames,...Array.from(khSet),...ALL_NAMES])].filter(n=>ALL_NAMES.includes(n));
+  const revT={},cntT={};
+  persons.forEach(n=>{revT[n]=0;cntT[n]=0});
+  labels.forEach(l=>persons.forEach(n=>{ revT[n]+=(revByDate[l]?.[n]||0); cntT[n]+=(cntByDate[l]?.[n]||0) }));
+  return {labels,persons,revByDate,cntByDate,revTotals:revT,cntTotals:cntT};
+}
+
+// ══════════════════════════════════════════
+//  MAIN LOAD
+// ══════════════════════════════════════════
+async function loadData(silent=false){
+  if(!cfg.sheetId||!cfg.apiKey){ setState('setup'); return }
+  const fromISO=document.getElementById('dateFrom').value||monthStartISO();
+  const toISO  =document.getElementById('dateTo').value  ||todayISO();
+  if(!silent) setState('loading');
+
+  try{
+    const [curr,prev]=await Promise.all([
+      parseSheetData(fromISO,toISO),
+      parseSheetData(...prevPeriodISO(fromISO,toISO)),
+    ]);
+
+    const totalRev=Object.values(curr.revTotals).reduce((a,b)=>a+b,0);
+    const totalCnt=Object.values(curr.cntTotals).reduce((a,b)=>a+b,0);
+    const prevRev =Object.values(prev.revTotals).reduce((a,b)=>a+b,0);
+    const prevCnt =Object.values(prev.cntTotals).reduce((a,b)=>a+b,0);
+
+    if(totalRev===0&&totalCnt===0){ setState('empty'); return }
+
+    // render all
+    renderIntelligence(curr, prevRev);
+    renderKPIs(curr, totalRev, totalCnt, prevRev, prevCnt);
+    renderCharts(curr);
+    renderStaffTable(curr, prev, totalRev);
+    renderActions();
+
+    setState('data');
+    setState('live');
+    document.getElementById('dashboardContent').style.display='block';
+    document.getElementById('metaBadge').style.display='flex';
+    document.getElementById('syncText').textContent=
+      'Cập nhật '+new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
+    startCd();
+
+  }catch(e){
+    setState('error');
+    if(!silent) alert('Lỗi tải dữ liệu:\n'+e.message);
+    console.error(e);
+  }
+}
+
+// ══════════════════════════════════════════
+//  RENDER: INTELLIGENCE
+// ══════════════════════════════════════════
+function renderIntelligence({persons,revTotals,cntTotals}, prevTotalRev){
+  const totalRev=Object.values(revTotals).reduce((a,b)=>a+b,0);
+  const sorted=[...persons].sort((a,b)=>revTotals[b]-revTotals[a]);
+
+  // ── Alerts
+  const alerts=[];
+  const leader=sorted[0];
+  if(leader) alerts.push({
+    icon:'🏆', cls:'n1',
+    title: leader+' dẫn đầu doanh thu',
+    desc: fmtVND(revTotals[leader])+' VND — '+((revTotals[leader]/Math.max(totalRev,1)*100).toFixed(1))+'% tổng nhóm'
+  });
+  const lowest=sorted[sorted.length-1];
+  if(lowest&&revTotals[lowest]===0) alerts.push({
+    icon:'⚠️', cls:'n2',
+    title: lowest+' chưa có doanh thu',
+    desc: 'Chưa ghi nhận doanh thu trong kỳ này'
+  });
+  const avgEff=persons.map(n=>cntTotals[n]>0?revTotals[n]/cntTotals[n]:0);
+  const maxEff=Math.max(...avgEff);
+  const topEffIdx=avgEff.indexOf(maxEff);
+  if(topEffIdx>=0&&maxEff>0) alerts.push({
+    icon:'💡', cls:'n3',
+    title: persons[topEffIdx]+' hiệu quả nhất',
+    desc: fmtVND(Math.round(maxEff))+' VND/lượt liên hệ'
+  });
+
+  const alertsEl=document.getElementById('intelAlerts');
+  alertsEl.innerHTML = alerts.length
+    ? alerts.map((a,i)=>`
+        <div class="alert-item">
+          <span class="alert-num ${a.cls}">${i+1}</span>
+          <span class="alert-icon">${a.icon}</span>
+          <div class="alert-text"><strong>${a.title}</strong>${a.desc}</div>
+        </div>`).join('')
+    : '<div class="empty-intel">Không có điểm nổi bật</div>';
+
+  // ── Risks
+  const risks=[];
+  const chg=prevTotalRev>0?((totalRev-prevTotalRev)/prevTotalRev*100):null;
+  if(chg!==null&&chg<-20) risks.push({level:'high',text:`Doanh thu giảm ${Math.abs(chg).toFixed(1)}% so với kỳ trước — cần kiểm tra ngay`});
+  persons.forEach(n=>{
+    const pct=totalRev>0?(revTotals[n]/totalRev*100):0;
+    if(pct>60) risks.push({level:'high',text:`${n} chiếm ${pct.toFixed(1)}% doanh thu — phụ thuộc nhân sự cao`});
+    if(cntTotals[n]===0&&revTotals[n]>0) risks.push({level:'medium',text:`${n} có doanh thu nhưng không có lượt liên hệ — kiểm tra dữ liệu`});
+  });
+
+  const risksEl=document.getElementById('riskAlerts');
+  risksEl.innerHTML = risks.length
+    ? risks.map(r=>`
+        <div class="risk-item">
+          <span class="risk-badge ${r.level}">${r.level.toUpperCase()}</span>
+          <span class="risk-text">${r.text}</span>
+        </div>`).join('')
+    : '<div class="empty-intel" style="color:var(--green)">✅ Không có rủi ro nào</div>';
+}
+
+// ══════════════════════════════════════════
+//  RENDER: KPI CARDS
+// ══════════════════════════════════════════
+function chgBadge(curr,prev){
+  if(!prev||prev===0) return '<span class="chg-badge flat">—</span>';
+  const p=((curr-prev)/prev*100);
+  const cls=p>=0?'up':'down', arrow=p>=0?'▲':'▼';
+  return `<span class="chg-badge ${cls}">${arrow} ${Math.abs(p).toFixed(1)}%</span>`;
+}
+
+function renderKPIs({persons,revTotals,cntTotals}, totalRev, totalCnt, prevRev, prevCnt){
+  const avgEff=totalCnt>0?Math.round(totalRev/totalCnt):0;
+  const sorted=[...persons].sort((a,b)=>revTotals[b]-revTotals[a]);
+  const leader=sorted[0];
+
+  const cards=[
+    {label:'Tổng doanh thu', val:fmtVND(totalRev), unit:'VND', comp:[{label:'Kỳ trước',badge:chgBadge(totalRev,prevRev)}], desc:'Tổng doanh thu toàn nhóm RE-MKT', color:'var(--accent)'},
+    {label:'Tổng lượt liên hệ', val:totalCnt.toLocaleString('vi-VN'), unit:'lượt', comp:[{label:'Kỳ trước',badge:chgBadge(totalCnt,prevCnt)}], desc:'Tổng KH được liên hệ trong kỳ', color:'var(--green)'},
+    {label:'DT trung bình / lượt', val:fmtVND(avgEff), unit:'VND/lượt', comp:[], desc:'Hiệu quả chuyển đổi trung bình', color:'var(--amber)'},
+    {label:'Nhân sự dẫn đầu', val:leader||'—', unit:'', comp:leader?[{label:'Doanh thu',badge:`<span style="color:var(--green)">${fmtVND(revTotals[leader])} VND</span>`}]:[], desc:leader?`${((revTotals[leader]/Math.max(totalRev,1))*100).toFixed(1)}% tổng nhóm`:'', color:COLORS[leader]||'var(--purple)'},
+  ];
+
+  const grid=document.getElementById('kpiGrid');
+  grid.innerHTML='';
+  cards.forEach(c=>{
+    const div=document.createElement('div');
+    div.className='kpi-card';
+    div.style.setProperty('--kc',c.color);
+    div.innerHTML=`
+      <div class="kpi-label">${c.label}</div>
+      <div class="kpi-value">${c.val}<span class="kpi-unit">${c.unit}</span></div>
+      ${c.comp.length?`<div class="kpi-comps">${c.comp.map(x=>`<div class="kpi-comp">${x.label}: ${x.badge}</div>`).join('')}</div>`:''}
+      <div class="kpi-desc">${c.desc}</div>`;
+    grid.appendChild(div);
+  });
+
+  // Per-person cards
+  sorted.forEach(n=>{
+    const rev=revTotals[n]||0, cnt=cntTotals[n]||0;
+    const pct=totalRev>0?((rev/totalRev)*100).toFixed(1):'0.0';
+    const div=document.createElement('div');
+    div.className='kpi-card';
+    div.style.setProperty('--kc',COLORS[n]);
+    div.innerHTML=`
+      <div class="kpi-label" style="display:flex;align-items:center;gap:5px">
+        <span style="width:7px;height:7px;border-radius:50%;background:${COLORS[n]};flex-shrink:0"></span>${n}
+      </div>
+      <div class="kpi-value" style="font-size:22px">${fmtVND(rev)}<span class="kpi-unit">VND</span></div>
+      <div class="kpi-comps">
+        <div class="kpi-comp">Tỷ trọng: <span style="color:var(--green);font-weight:600;margin-left:3px">${pct}%</span></div>
+        <div class="kpi-comp">Lượt liên hệ: <strong style="color:var(--text);margin-left:3px">${cnt}</strong></div>
+      </div>
+      <div class="kpi-desc">DT/lượt: ${cnt>0?fmtVND(Math.round(rev/cnt)):'—'} VND</div>`;
+    grid.appendChild(div);
+  });
+}
+
+// ══════════════════════════════════════════
+//  RENDER: CHARTS
+// ══════════════════════════════════════════
+function mkDatasets(labels,persons,dataMap,alpha='bb'){
+  return persons.map(n=>({
+    label:n, data:labels.map(l=>dataMap[l]?.[n]||0),
+    backgroundColor:(COLORS[n]||'#888')+alpha, borderWidth:0, borderRadius:2,
+  }));
+}
+function gridOpts(){ return { color:'rgba(255,255,255,0.04)' } }
+function tickOpts(extra={}){ return { color:'#454c66', font:{size:10}, ...extra } }
+
+function destroyChart(key){ if(charts[key]){ charts[key].destroy(); delete charts[key] } }
+
+function renderCharts({labels,persons,revByDate,cntByDate}){
+  // Stacked bar revenue
+  destroyChart('revBar');
+  charts['revBar']=new Chart(document.getElementById('revBarChart'),{
+    type:'bar',
+    data:{labels, datasets:mkDatasets(labels,persons,revByDate)},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${fmtVND(ctx.parsed.y)} VND`}}},
+      scales:{
+        x:{stacked:true,grid:gridOpts(),ticks:tickOpts({autoSkip:true,maxTicksLimit:14,maxRotation:45})},
+        y:{stacked:true,grid:gridOpts(),ticks:tickOpts({callback:v=>fmtVND(v)})}
+      }
+    }
+  });
+  renderLegend('revBarLegend',persons);
+
+  // Line chart
+  destroyChart('revLine');
+  charts['revLine']=new Chart(document.getElementById('revLineChart'),{
+    type:'line',
+    data:{labels, datasets:persons.map(n=>({
+      label:n, data:labels.map(l=>revByDate[l]?.[n]||0),
+      borderColor:COLORS[n]||'#888', backgroundColor:(COLORS[n]||'#888')+'18',
+      borderWidth:2, pointRadius:0, pointHoverRadius:4, fill:true, tension:.35,
+    }))},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${fmtVND(ctx.parsed.y)} VND`}}},
+      scales:{
+        x:{grid:gridOpts(),ticks:tickOpts({autoSkip:true,maxTicksLimit:14,maxRotation:45})},
+        y:{grid:gridOpts(),ticks:tickOpts({callback:v=>fmtVND(v)})}
+      }
+    }
+  });
+  renderLegend('revLineLegend',persons);
+
+  // Contacts bar
+  destroyChart('cnt');
+  charts['cnt']=new Chart(document.getElementById('cntChart'),{
+    type:'bar',
+    data:{labels, datasets:mkDatasets(labels,persons,cntByDate)},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y} lượt`}}},
+      scales:{
+        x:{stacked:true,grid:gridOpts(),ticks:tickOpts({autoSkip:true,maxTicksLimit:14,maxRotation:45})},
+        y:{stacked:true,grid:gridOpts(),ticks:tickOpts()}
+      }
+    }
+  });
+  renderLegend('cntLegend',persons);
+
+  // Donut
+  destroyChart('donut');
+  const active=persons.filter(n=>(Object.values({})||[]).concat(Object.values({}).map(()=>0)));
+  const revT={};persons.forEach(n=>{revT[n]=0});
+  Object.values({}); // reset trick — use revByDate totals direct
+  const revTots={};persons.forEach(n=>{revTots[n]=labels.reduce((s,l)=>s+(revByDate[l]?.[n]||0),0)});
+  const donutPersons=persons.filter(n=>revTots[n]>0);
+  const totalRev=Object.values(revTots).reduce((a,b)=>a+b,0);
+  charts['donut']=new Chart(document.getElementById('donutChart'),{
+    type:'doughnut',
+    data:{
+      labels:donutPersons,
+      datasets:[{
+        data:donutPersons.map(n=>revTots[n]),
+        backgroundColor:donutPersons.map(n=>COLORS[n]||'#888'),
+        borderWidth:2, borderColor:'#131620', hoverOffset:8,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,cutout:'60%',
+      plugins:{
+        legend:{position:'right',labels:{color:'#7c849e',font:{size:11},boxWidth:10,padding:10}},
+        tooltip:{callbacks:{label:ctx=>{
+          const pct=totalRev>0?((ctx.parsed/totalRev)*100).toFixed(1):'0';
+          return ` ${fmtVND(ctx.parsed)} VND (${pct}%)`;
+        }}}
+      }
+    }
+  });
+}
+
+function renderLegend(id,persons){
+  const el=document.getElementById(id);
+  el.innerHTML=persons.map(n=>`<span class="legend-item"><span class="legend-sw" style="background:${COLORS[n]||'#888'}"></span>${n}</span>`).join('');
+}
+
+// ══════════════════════════════════════════
+//  RENDER: STAFF TABLE
+// ══════════════════════════════════════════
+function renderStaffTable({persons,revTotals,cntTotals}, prev, totalRev){
+  const tbody=document.getElementById('staffTable');
+  tbody.innerHTML='';
+  const maxRev=Math.max(...Object.values(revTotals),1);
+  const sorted=[...persons].sort((a,b)=>(revTotals[b]||0)-(revTotals[a]||0));
+  const rankCls=['r1','r2','r3'];
+  const initials=n=>n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase();
+
+  sorted.forEach((name,i)=>{
+    const rev=revTotals[name]||0, cnt=cntTotals[name]||0;
+    const eff=cnt>0?Math.round(rev/cnt):0;
+    const pct=totalRev>0?((rev/totalRev)*100).toFixed(1):'0.0';
+    const barW=((rev/maxRev)*100).toFixed(1);
+    const prevRev=prev.revTotals[name]||0;
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td><span class="rank ${rankCls[i]||''}">${i+1}</span></td>
+      <td><div class="name-cell"><div class="avatar" style="background:${COLORS[name]}">${initials(name)}</div>${name}</div></td>
+      <td class="r" style="font-weight:700">${fmtVND(rev)} VND</td>
+      <td class="r">${chgBadge(rev,prevRev)}</td>
+      <td class="r" style="color:var(--green)">${pct}%</td>
+      <td class="r">${cnt.toLocaleString('vi-VN')}</td>
+      <td class="r" style="color:var(--text-2)">${fmtVND(eff)}/lượt</td>
+      <td>
+        <div class="bar-wrap">
+          <div class="bar-bg"><div class="bar-fill" style="width:${barW}%;background:${COLORS[name]}"></div></div>
+          <span style="font-size:10px;color:var(--text-3);min-width:30px;text-align:right">${pct}%</span>
+        </div>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ══════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('dateFrom').value=monthStartISO();
+  document.getElementById('dateTo').value=todayISO();
+  renderActions();
+  if(cfg.sheetId&&cfg.apiKey){ loadData() }
+  else{ setState('setup') }
+});
+</script>
+</body>
+</html>
